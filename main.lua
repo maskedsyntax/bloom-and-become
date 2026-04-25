@@ -13,11 +13,14 @@ local gameState = "title" -- "title", "playing", "won", "credits"
 local camX = 0
 local levelWidth = 2500
 
--- Juice
+-- Juice & Background
 local shakeTime = 0
 local shakeIntensity = 0
 local particles
 local evolutionPause = 0
+local clouds = {}
+local hills = {}
+local petals = {}
 
 -- Assets
 local tilesImg
@@ -25,6 +28,7 @@ local charactersImg
 local quads = {}
 local bgm
 local sfx = {}
+local fonts = {}
 
 function initGame()
     evolutionEnergy = 0
@@ -41,34 +45,41 @@ function initGame()
     
     -- --- SECTION 1: SPROUT (0-800) ---
     table.insert(collectibles, Collectible.new(200, 450, "sunlight", tilesImg))
-    table.insert(collectibles, Collectible.new(350, 400, "sunlight", tilesImg))
+    table.insert(collectibles, Collectible.new(350, 420, "sunlight", tilesImg))
     table.insert(collectibles, Collectible.new(500, 450, "sunlight", tilesImg))
-    table.insert(collectibles, Collectible.new(650, 350, "sunlight", tilesImg))
-    table.insert(collectibles, Collectible.new(800, 450, "sunlight", tilesImg))
-    
-    -- --- SECTION 2: VINE (800-1500) ---
-    table.insert(obstacles, {x = 1000, y = 320, width = 100, height = 180, color = {0.3, 0.3, 0.3}})
-    table.insert(vines, {x = 1040, y = 150, width = 20, height = 350})
-    
-    table.insert(collectibles, Collectible.new(1040, 100, "sunlight", tilesImg))
-    table.insert(collectibles, Collectible.new(1150, 250, "sunlight", tilesImg))
-    table.insert(collectibles, Collectible.new(1250, 450, "sunlight", tilesImg))
-    table.insert(collectibles, Collectible.new(1350, 400, "sunlight", tilesImg))
-    table.insert(collectibles, Collectible.new(1450, 450, "sunlight", tilesImg))
-    table.insert(collectibles, Collectible.new(1550, 350, "sunlight", tilesImg))
-    
+    table.insert(collectibles, Collectible.new(650, 400, "sunlight", tilesImg))
+    table.insert(collectibles, Collectible.new(800, 430, "sunlight", tilesImg))
+-- --- SECTION 2: VINE (800-1500) ---
+table.insert(obstacles, {x = 1000, y = 320, width = 100, height = 180, color = {0.3, 0.3, 0.3}})
+table.insert(vines, {x = 975, y = 150, width = 20, height = 350}) -- Left side vine
+table.insert(vines, {x = 1105, y = 150, width = 20, height = 350}) -- Right side vine (New!)
+
+table.insert(collectibles, Collectible.new(975, 100, "sunlight", tilesImg))
+table.insert(collectibles, Collectible.new(1105, 100, "sunlight", tilesImg)) -- Extra orb on right vine
+table.insert(collectibles, Collectible.new(1150, 250, "sunlight", tilesImg))
+table.insert(collectibles, Collectible.new(1200, 450, "sunlight", tilesImg)) -- Extra buffer orb
+table.insert(collectibles, Collectible.new(1250, 450, "sunlight", tilesImg))
+table.insert(collectibles, Collectible.new(1350, 400, "sunlight", tilesImg))
+table.insert(collectibles, Collectible.new(1450, 450, "sunlight", tilesImg))
+table.insert(collectibles, Collectible.new(1550, 350, "sunlight", tilesImg))
+
     -- --- SECTION 3: TREE (1500-2500) ---
-    table.insert(breakables, {x = 1700, y = 440, width = 60, height = 60, intact = true})
+    table.insert(breakables, {x = 1700, y = 350, width = 60, height = 150, intact = true})
     table.insert(collectibles, Collectible.new(1850, 450, "sunlight", tilesImg))
     table.insert(collectibles, Collectible.new(2000, 400, "sunlight", tilesImg))
-    table.insert(breakables, {x = 2200, y = 400, width = 40, height = 100, intact = true})
+    table.insert(breakables, {x = 2200, y = 350, width = 40, height = 150, intact = true})
     
     goal = {x = 2400, y = 430, width = 40, height = 70}
 end
 
 function love.load()
     love.graphics.setDefaultFilter("nearest", "nearest")
-    love.graphics.setBackgroundColor(0.5, 0.8, 1.0)
+    
+    -- Load Fonts
+    fonts.title = love.graphics.newFont("assets/fonts/Fredoka-Bold.ttf", 64)
+    fonts.medium = love.graphics.newFont("assets/fonts/Fredoka-Bold.ttf", 24)
+    fonts.regular = love.graphics.newFont("assets/fonts/Fredoka-Regular.ttf", 18)
+    fonts.small = love.graphics.newFont("assets/fonts/Fredoka-Regular.ttf", 14)
     
     tilesImg = love.graphics.newImage("assets/sprites/environment/tiles_packed.png")
     charactersImg = love.graphics.newImage("assets/sprites/player/characters_packed.png")
@@ -76,9 +87,9 @@ function love.load()
     local ts = 18
     quads.grass = love.graphics.newQuad(0, 0, ts, ts, tilesImg:getDimensions())
     quads.dirt = love.graphics.newQuad(0, ts, ts, ts, tilesImg:getDimensions())
-    quads.vine = love.graphics.newQuad(198, 144, ts, ts, tilesImg:getDimensions())
-    quads.rock = love.graphics.newQuad(36, 18, ts, ts, tilesImg:getDimensions())
-    quads.shrine = love.graphics.newQuad(162, 144, ts, ts, tilesImg:getDimensions())
+    quads.vine = love.graphics.newQuad(126, 36, ts, ts, tilesImg:getDimensions())
+    quads.rock = love.graphics.newQuad(90, 18, ts, ts, tilesImg:getDimensions())
+    quads.shrine = love.graphics.newQuad(198, 90, ts, ts, tilesImg:getDimensions())
     
     bgm = love.audio.newSource("assets/audio/music/spring_ambient.ogg", "stream")
     bgm:setLooping(true)
@@ -90,6 +101,35 @@ function love.load()
     sfx.evolve = love.audio.newSource("assets/audio/sfx/evolve.ogg", "static")
     sfx.win = love.audio.newSource("assets/audio/sfx/win.ogg", "static")
     
+    -- Init Background Elements
+    for i = 1, 8 do
+        table.insert(clouds, {
+            x = math.random(0, 800),
+            y = math.random(20, 200),
+            speed = math.random(5, 20),
+            w = math.random(60, 120)
+        })
+    end
+    
+    for i = 1, 5 do
+        table.insert(hills, {
+            x = (i-1) * 300,
+            h = math.random(100, 250),
+            color = {0.2 + (i*0.05), 0.6 + (i*0.05), 0.2 + (i*0.05)}
+        })
+    end
+
+    for i = 1, 20 do
+        table.insert(petals, {
+            x = math.random(0, 2500),
+            y = math.random(0, 600),
+            speedX = math.random(-20, -10),
+            speedY = math.random(10, 30),
+            angle = math.random() * math.pi * 2,
+            rotSpeed = math.random() * 2
+        })
+    end
+    
     initGame()
     bgm:play()
 end
@@ -100,6 +140,19 @@ function startShake(time, intensity)
 end
 
 function love.update(dt)
+    -- Update Background
+    for _, c in ipairs(clouds) do
+        c.x = c.x + c.speed * dt
+        if c.x > 800 then c.x = -c.w end
+    end
+    for _, p in ipairs(petals) do
+        p.x = p.x + p.speedX * dt
+        p.y = p.y + p.speedY * dt
+        p.angle = p.angle + p.rotSpeed * dt
+        if p.y > 600 then p.y = -10 p.x = math.random(0, 2500) end
+        if p.x < 0 then p.x = 2500 end
+    end
+
     if gameState ~= "playing" then return end
 
     if evolutionPause > 0 then
@@ -124,7 +177,6 @@ function love.update(dt)
         end
     end
 
-    local oldX, oldY = player.x, player.y
     player:update(dt, onVine)
     
     if player.y > 600 then
@@ -134,19 +186,30 @@ function love.update(dt)
     end
 
     local function checkSolidCollision(obj)
-        if player.x < obj.x + obj.width and
-           obj.x < player.x + player.width and
-           player.y < obj.y + obj.height and
-           obj.y < player.y + player.height then
-            player.x = oldX
-            player.xVel = 0
+        local dx = (player.x + player.width/2) - (obj.x + obj.width/2)
+        local dy = (player.y + player.height/2) - (obj.y + obj.height/2)
+        local combinedHalfWidth = (player.width + obj.width) / 2
+        local combinedHalfHeight = (player.height + obj.height) / 2
+
+        if math.abs(dx) < combinedHalfWidth and math.abs(dy) < combinedHalfHeight then
+            local overlapX = combinedHalfWidth - math.abs(dx)
+            local overlapY = combinedHalfHeight - math.abs(dy)
+            if overlapX < overlapY then
+                if dx > 0 then player.x = obj.x + obj.width else player.x = obj.x - player.width end
+                player.xVel = 0
+            else
+                if dy > 0 then player.y = obj.y + obj.height player.yVel = 0 else
+                    player.y = obj.y - player.height
+                    player.yVel = 0
+                    player.grounded = true
+                    player.isClimbing = false
+                end
+            end
         end
     end
 
     for _, obs in ipairs(obstacles) do checkSolidCollision(obs) end
-    for _, b in ipairs(breakables) do
-        if b.intact then checkSolidCollision(b) end
-    end
+    for _, b in ipairs(breakables) do if b.intact then checkSolidCollision(b) end end
     
     for _, item in ipairs(collectibles) do
         if not item.collected and item:checkCollision(player) then
@@ -154,9 +217,7 @@ function love.update(dt)
             evolutionEnergy = evolutionEnergy + 1
             sfx.collect:stop()
             sfx.collect:play()
-            
             particles:spawn(item.x + item.width/2, item.y + item.height/2, {1, 0.9, 0}, 8)
-            
             if (evolutionEnergy == 5 and player.stage == 1) or (evolutionEnergy == 10 and player.stage == 2) then
                 player:evolve()
                 sfx.evolve:play()
@@ -168,10 +229,8 @@ function love.update(dt)
     end
 
     if player.stage == 3 then
-        if player.x < goal.x + goal.width and
-           goal.x < player.x + player.width and
-           player.y < goal.y + goal.height and
-           goal.y < player.y + player.height then
+        if player.x < goal.x + goal.width and goal.x < player.x + player.width and
+           player.y < goal.y + goal.height and goal.y < player.y + player.height then
             gameState = "won"
             bgm:stop()
             sfx.win:play()
@@ -185,32 +244,21 @@ end
 
 function love.keypressed(key)
     if gameState == "title" then
-        if key == "return" then
-            gameState = "playing"
-        elseif key == "c" then
-            gameState = "credits"
-        end
+        if key == "return" then gameState = "playing"
+        elseif key == "c" then gameState = "credits" end
         return
     end
-
     if gameState == "credits" then
-        if key == "escape" or key == "backspace" or key == "c" then
-            gameState = "title"
-        end
+        if key == "escape" or key == "backspace" or key == "c" then gameState = "title" end
         return
     end
-
     if key == "r" then
         initGame()
         gameState = "playing"
         bgm:play()
     end
-
     if gameState == "playing" and evolutionPause <= 0 then
-        if key == "space" or key == "w" or key == "up" then
-            player:jump()
-        end
-        
+        if key == "space" or key == "w" or key == "up" then player:jump() end
         if key == "e" and player.stage == 3 then
             for _, b in ipairs(breakables) do
                 local centerX = player.x + player.width/2
@@ -225,46 +273,104 @@ function love.keypressed(key)
             end
         end
     end
+    if key == "escape" then love.event.quit() end
+end
+
+function drawParchmentPanel(x, y, w, h, title)
+    -- Shadow
+    love.graphics.setColor(0, 0, 0, 0.2)
+    love.graphics.rectangle("fill", x+4, y+4, w, h, 15)
+    -- Main Panel
+    love.graphics.setColor(0.98, 0.94, 0.85)
+    love.graphics.rectangle("fill", x, y, w, h, 15)
+    -- Border
+    love.graphics.setColor(0.4, 0.25, 0.1)
+    love.graphics.setLineWidth(3)
+    love.graphics.rectangle("line", x, y, w, h, 15)
     
-    if key == "escape" then
-        love.event.quit()
+    if title then
+        love.graphics.setFont(fonts.medium)
+        love.graphics.printf(title, x, y + 10, w, "center")
+    end
+end
+
+function drawSpringBackground()
+    -- Sky
+    love.graphics.setColor(0.6, 0.8, 1.0)
+    love.graphics.rectangle("fill", 0, 0, 800, 600)
+    
+    -- Hills
+    for i, h in ipairs(hills) do
+        love.graphics.setColor(h.color[1], h.color[2], h.color[3])
+        love.graphics.ellipse("fill", h.x - (camX * 0.2 % 300), 550, 400, h.h)
+        love.graphics.ellipse("fill", h.x + 300 - (camX * 0.2 % 300), 550, 400, h.h)
+    end
+    
+    -- Clouds
+    love.graphics.setColor(1, 1, 1, 0.8)
+    for _, c in ipairs(clouds) do
+        love.graphics.ellipse("fill", c.x, c.y, c.w, c.w*0.4)
+    end
+
+    -- Petals
+    love.graphics.setColor(1, 0.8, 0.9, 0.6)
+    for _, p in ipairs(petals) do
+        love.graphics.push()
+        love.graphics.translate(p.x - camX, p.y)
+        love.graphics.rotate(p.angle)
+        love.graphics.rectangle("fill", -4, -2, 8, 4, 2)
+        love.graphics.pop()
     end
 end
 
 function drawHUD()
-    love.graphics.setColor(0, 0, 0, 0.5)
-    love.graphics.rectangle("fill", 5, 5, 260, 110)
-    love.graphics.setColor(1, 1, 1)
-    love.graphics.print("Bloom & Become", 10, 10)
+    drawParchmentPanel(10, 10, 240, 130)
     
-    love.graphics.setColor(1, 0.9, 0)
+    love.graphics.setColor(0.2, 0.4, 0.1)
+    love.graphics.setFont(fonts.medium)
+    love.graphics.print("Bloom & Become", 20, 20)
+    
+    love.graphics.setColor(0.6, 0.5, 0.1)
+    love.graphics.setFont(fonts.regular)
     local nextGoal = (player.stage == 1) and 5 or ((player.stage == 2) and 10 or "MAX")
-    love.graphics.print("Sunlight: " .. evolutionEnergy .. " / " .. nextGoal, 10, 35)
+    love.graphics.print("Sunlight: " .. evolutionEnergy .. " / " .. nextGoal, 25, 55)
     
+    love.graphics.setColor(0.1, 0.5, 0.1)
     local stageName = (player.stage == 1) and "Sprout" or ((player.stage == 2) and "Vine Sprout" or "Tree Form")
-    love.graphics.setColor(0.2, 0.8, 0.2)
-    if player.stage == 3 then love.graphics.setColor(0.5, 0.3, 0.1) end
-    love.graphics.print("Form: " .. stageName, 10, 55)
+    love.graphics.print("Form: " .. stageName, 25, 75)
     
-    love.graphics.setColor(1, 1, 1)
+    love.graphics.setColor(0.3, 0.3, 0.3)
+    love.graphics.setFont(fonts.small)
     local ability = "None"
-    if player.stage == 2 then ability = "Climb (Up/Down on Vines)" end
+    if player.stage == 2 then ability = "Climb (W/S on Vines)" end
     if player.stage == 3 then ability = "Break Rocks (E near rock)" end
-    love.graphics.print("Ability: " .. ability, 10, 75)
-    love.graphics.print("Press R to Restart", 10, 95)
+    love.graphics.print("Ability: " .. ability, 25, 100)
+    love.graphics.print("Press R to Restart", 25, 115)
 end
 
 function love.draw()
+    drawSpringBackground()
+
     if gameState == "title" then
-        love.graphics.printf("Bloom & Become", 0, 150, 800, "center", 0, 2, 2)
-        love.graphics.printf("Press Enter to Start", 0, 300, 800, "center")
-        love.graphics.printf("Press C for Credits", 0, 330, 800, "center")
-        love.graphics.printf("Controls:\nMove: A/D | Jump: Space\nVine Form: Up/Down to Climb\nTree Form: E to Break Rocks", 0, 420, 800, "center")
+        love.graphics.setColor(1, 1, 1)
+        love.graphics.setFont(fonts.title)
+        love.graphics.setColor(0.2, 0.5, 0.1)
+        love.graphics.printf("Bloom & Become", 0, 100, 800, "center")
+        
+        drawParchmentPanel(250, 250, 300, 60, "Enter to Start")
+        drawParchmentPanel(250, 320, 300, 60, "C for Credits")
+        
+        drawParchmentPanel(150, 420, 500, 120)
+        love.graphics.setColor(0.4, 0.25, 0.1)
+        love.graphics.setFont(fonts.regular)
+        love.graphics.printf("Controls:\nMove: A/D | Jump: Space\nVine Form: W/S to Climb\nTree Form: E to Break Rocks", 150, 440, 500, "center")
         return
     end
 
     if gameState == "credits" then
-        love.graphics.printf("CREDITS", 0, 50, 800, "center", 0, 1.5, 1.5)
+        drawParchmentPanel(100, 50, 600, 500, "CREDITS")
+        love.graphics.setColor(0.4, 0.25, 0.1)
+        love.graphics.setFont(fonts.regular)
         local credits = [[
 Art Assets:
 "Pixel Platformer" by Kenney (CC0)
@@ -282,8 +388,9 @@ Code Assistance: Gemini CLI (Google)
 Design & Development:
 Created for the "Evolution" Game Jam
 ]]
-        love.graphics.printf(credits, 0, 120, 800, "center")
-        love.graphics.printf("Press Escape to Return", 0, 530, 800, "center")
+        love.graphics.printf(credits, 100, 120, 600, "center")
+        love.graphics.setFont(fonts.medium)
+        love.graphics.printf("Press Escape to Return", 100, 480, 600, "center")
         return
     end
 
@@ -317,18 +424,13 @@ Created for the "Evolution" Game Jam
     end
     
     for _, item in ipairs(collectibles) do item:draw() end
-    
     for _, b in ipairs(breakables) do
-        if b.intact then
-            love.graphics.draw(tilesImg, quads.rock, b.x, b.y, 0, b.width/ts, b.height/ts)
-        end
+        if b.intact then love.graphics.draw(tilesImg, quads.rock, b.x, b.y, 0, b.width/ts, b.height/ts) end
     end
-    
     love.graphics.draw(tilesImg, quads.shrine, goal.x, goal.y, 0, 2, 4)
 
     player:draw()
     particles:draw()
-    
     love.graphics.pop()
 
     drawHUD()
@@ -336,8 +438,9 @@ Created for the "Evolution" Game Jam
     if gameState == "won" then
         love.graphics.setColor(0, 0, 0, 0.7)
         love.graphics.rectangle("fill", 0, 0, 800, 600)
-        love.graphics.setColor(1, 1, 1)
-        love.graphics.printf("SPRING HAS BLOOMED!", 0, 250, 800, "center", 0, 2, 2)
-        love.graphics.printf("Press R to Play Again", 0, 350, 800, "center")
+        drawParchmentPanel(150, 200, 500, 200, "SPRING HAS BLOOMED!")
+        love.graphics.setColor(0.4, 0.25, 0.1)
+        love.graphics.setFont(fonts.medium)
+        love.graphics.printf("Press R to Play Again", 150, 300, 500, "center")
     end
 end

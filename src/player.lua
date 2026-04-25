@@ -19,7 +19,7 @@ function Player.new(x, y, img, sfx)
     self.accel = 900
     self.friction = 800
     self.gravity = 700
-    self.jumpVelocity = -260
+    self.jumpVelocity = -400
     self.climbSpeed = 80
 
     -- Graphics
@@ -37,17 +37,18 @@ end
 function Player:evolve()
     if self.stage == 1 then
         self.stage = 2
-        self.jumpVelocity = -320
+        self.jumpVelocity = -450
         self.height = 32
     elseif self.stage == 2 then
         self.stage = 3
         self.width = 24
         self.height = 40
-        self.jumpVelocity = -280
+        self.jumpVelocity = -420
     end
 end
 
 function Player:update(dt, onVine)
+    self.grounded = false -- Assume not grounded until proven otherwise
     local canClimb = self.stage >= 2 and onVine
     
     if canClimb and (love.keyboard.isDown("w", "up", "s", "down")) then
@@ -58,6 +59,31 @@ function Player:update(dt, onVine)
         self.isClimbing = false
     end
 
+    -- Horizontal movement (Now enabled even while climbing to allow exiting vines)
+    local moveDir = 0
+    if love.keyboard.isDown("a", "left") then
+        moveDir = moveDir - 1
+        self.facing = -1
+    end
+    if love.keyboard.isDown("d", "right") then
+        moveDir = moveDir + 1
+        self.facing = 1
+    end
+
+    if moveDir ~= 0 then
+        self.xVel = self.xVel + moveDir * self.accel * dt
+        if math.abs(self.xVel) > self.speed then
+            self.xVel = (self.xVel / math.abs(self.xVel)) * self.speed
+        end
+    else
+        local friction = self.friction * dt
+        if math.abs(self.xVel) <= friction then
+            self.xVel = 0
+        else
+            self.xVel = self.xVel - (self.xVel / math.abs(self.xVel)) * friction
+        end
+    end
+
     if self.isClimbing then
         self.yVel = 0
         if love.keyboard.isDown("w", "up") then
@@ -65,35 +91,12 @@ function Player:update(dt, onVine)
         elseif love.keyboard.isDown("s", "down") then
             self.yVel = self.climbSpeed
         end
-        self.xVel = 0
+        -- If climbing and moving away from vine, don't lock X to 0 anymore
     else
-        local moveDir = 0
-        if love.keyboard.isDown("a", "left") then
-            moveDir = moveDir - 1
-            self.facing = -1
-        end
-        if love.keyboard.isDown("d", "right") then
-            moveDir = moveDir + 1
-            self.facing = 1
-        end
-
-        if moveDir ~= 0 then
-            self.xVel = self.xVel + moveDir * self.accel * dt
-            if math.abs(self.xVel) > self.speed then
-                self.xVel = (self.xVel / math.abs(self.xVel)) * self.speed
-            end
-        else
-            local friction = self.friction * dt
-            if math.abs(self.xVel) <= friction then
-                self.xVel = 0
-            else
-                self.xVel = self.xVel - (self.xVel / math.abs(self.xVel)) * friction
-            end
-        end
-
         self.yVel = self.yVel + self.gravity * dt
     end
 
+    -- Apply velocity
     self.x = self.x + self.xVel * dt
     self.y = self.y + self.yVel * dt
 
@@ -103,8 +106,6 @@ function Player:update(dt, onVine)
         self.yVel = 0
         self.grounded = true
         self.isClimbing = false
-    else
-        self.grounded = false
     end
 end
 
@@ -125,11 +126,9 @@ function Player:draw()
     local q = self.quads[self.stage]
     local cs = 24
     
-    -- Scale sprite to match player height/width
     local sx = (self.width / cs) * self.facing
     local sy = (self.height / cs)
     
-    -- Offset to center sprite horizontally
     local ox = cs / 2
     local oy = 0
     
