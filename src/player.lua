@@ -7,12 +7,15 @@ function Player.new(x, y, img, sfx)
     self.y = y
     self.width = 16
     self.height = 24
+    self.baseWidth = 16
+    self.baseHeight = 24
     self.xVel = 0
     self.yVel = 0
     self.grounded = false
     self.stage = 1
     self.isClimbing = false
-    self.facing = 1 -- 1 for right, -1 for left
+    self.facing = 1
+    self.scale = 1 -- Added for juicy animation
 
     -- Constants
     self.speed = 120
@@ -38,17 +41,27 @@ function Player:evolve()
     if self.stage == 1 then
         self.stage = 2
         self.jumpVelocity = -450
-        self.height = 32
+        self.baseHeight = 32
+        self.baseWidth = 18
     elseif self.stage == 2 then
         self.stage = 3
-        self.width = 24
-        self.height = 40
+        self.baseWidth = 28
+        self.baseHeight = 44
         self.jumpVelocity = -420
     end
+    self.width = self.baseWidth
+    self.height = self.baseHeight
+    self.scale = 1.5 -- Pop scale
 end
 
 function Player:update(dt, onVine)
-    self.grounded = false -- Assume not grounded until proven otherwise
+    -- Animate scale back to 1
+    if self.scale > 1 then
+        self.scale = self.scale - dt * 2
+        if self.scale < 1 then self.scale = 1 end
+    end
+
+    self.grounded = false
     local canClimb = self.stage >= 2 and onVine
     
     if canClimb and (love.keyboard.isDown("w", "up", "s", "down")) then
@@ -59,7 +72,6 @@ function Player:update(dt, onVine)
         self.isClimbing = false
     end
 
-    -- Horizontal movement (Now enabled even while climbing to allow exiting vines)
     local moveDir = 0
     if love.keyboard.isDown("a", "left") then
         moveDir = moveDir - 1
@@ -91,12 +103,10 @@ function Player:update(dt, onVine)
         elseif love.keyboard.isDown("s", "down") then
             self.yVel = self.climbSpeed
         end
-        -- If climbing and moving away from vine, don't lock X to 0 anymore
     else
         self.yVel = self.yVel + self.gravity * dt
     end
 
-    -- Apply velocity
     self.x = self.x + self.xVel * dt
     self.y = self.y + self.yVel * dt
 
@@ -126,13 +136,13 @@ function Player:draw()
     local q = self.quads[self.stage]
     local cs = 24
     
-    local sx = (self.width / cs) * self.facing
-    local sy = (self.height / cs)
+    local sx = (self.width / cs) * self.facing * self.scale
+    local sy = (self.height / cs) * self.scale
     
     local ox = cs / 2
-    local oy = 0
+    local oy = cs -- Set origin to bottom so scale expands upwards
     
-    love.graphics.draw(self.img, q, self.x + self.width/2, self.y, 0, sx, sy, ox, oy)
+    love.graphics.draw(self.img, q, self.x + self.width/2, self.y + self.height, 0, sx, sy, ox, oy)
 end
 
 return Player
