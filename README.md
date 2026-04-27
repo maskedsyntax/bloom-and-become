@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/sprites/logo.png" width="280" style="border-radius: 20%;" alt="Bloom & Become Logo">
+  <img src="assets/sprites/logo_rounded.png" width="180" alt="Bloom & Become Logo">
 </p>
 
 <h1 align="center">Bloom & Become</h1>
