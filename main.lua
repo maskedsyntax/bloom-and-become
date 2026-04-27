@@ -120,6 +120,8 @@ function love.load()
     
     tilesImg = love.graphics.newImage("assets/sprites/environment/tiles_packed.png")
     charactersImg = love.graphics.newImage("assets/sprites/player/characters_packed.png")
+    logoImg = love.graphics.newImage("assets/sprites/logo.png")
+    love.window.setIcon(love.image.newImageData("assets/sprites/logo.png"))
     
     local ts = 18
     quads.grass = love.graphics.newQuad(0, 0, ts, ts, tilesImg:getDimensions())
@@ -304,12 +306,18 @@ end
 function love.draw()
     drawSpringBackground()
     if gameState == "title" then
-        love.graphics.setFont(fonts.title) love.graphics.setColor(0.2, 0.5, 0.1) love.graphics.printf("Bloom & Become", 0, 100, 800, "center")
-        drawParchmentPanel(250, 250, 300, 60, "Enter to Start")
-        drawParchmentPanel(250, 320, 300, 60, "C for Credits")
-        drawParchmentPanel(150, 420, 500, 120)
-        love.graphics.setColor(0.4, 0.25, 0.1) love.graphics.setFont(fonts.regular)
-        love.graphics.printf("Controls:\nMove: A/D | Jump: Space\nVine Form: W/S to Climb\nTree Form: E to Break Rocks", 150, 440, 500, "center")
+        love.graphics.setColor(1, 1, 1)
+        local lw, lh = logoImg:getDimensions()
+        local scale = 300 / lh
+        love.graphics.draw(logoImg, 400, 150, 0, scale, scale, lw/2, lh/2)
+        
+        drawParchmentPanel(250, 280, 300, 60, "Enter to Start")
+        drawParchmentPanel(250, 350, 300, 60, "C for Credits")
+        
+        drawParchmentPanel(150, 440, 500, 120)
+        love.graphics.setColor(0.4, 0.25, 0.1)
+        love.graphics.setFont(fonts.regular)
+        love.graphics.printf("Controls:\nMove: A/D | Jump: Space\nVine Form: W/S to Climb\nTree Form: E to Break Rocks", 150, 460, 500, "center")
         return
     end
     if gameState == "credits" then

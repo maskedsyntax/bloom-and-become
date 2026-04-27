@@ -1,5 +1,7 @@
 # Bloom & Become
 
+![Bloom & Become Logo](assets/sprites/logo.png)
+
 A 2D spring platformer made for a 48-hour game jam with the theme Evolution.
 
 ## Controls
