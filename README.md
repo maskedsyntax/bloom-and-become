@@ -15,6 +15,10 @@
   <img src="https://img.shields.io/badge/Platform-macOS%20%7C%20Windows%20%7C%20Linux-lightgrey.svg" alt="Platform">
 </p>
 
+<p align="center">
+  <img src="assets/screenshots/gameplay.png" alt="Bloom & Become gameplay screenshot">
+</p>
+
 ## Controls
 - Move: A/D or Arrow Keys
 - Jump: Space/W/Up

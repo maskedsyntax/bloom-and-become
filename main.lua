@@ -121,10 +121,10 @@ function love.load()
     tilesImg = love.graphics.newImage("assets/sprites/environment/tiles_packed.png")
     charactersImg = love.graphics.newImage("assets/sprites/player/characters_packed.png")
     
-    -- Safety check for icon/logo
+    -- Load the logo for the title screen. Do not call love.window.setIcon here:
+    -- on macOS, SDL replaces the Dock icon at runtime and bypasses the app icon mask.
     pcall(function()
         logoImg = love.graphics.newImage("assets/sprites/logo.png")
-        love.window.setIcon(love.image.newImageData("assets/sprites/logo.png"))
     end)
     
     local ts = 18
