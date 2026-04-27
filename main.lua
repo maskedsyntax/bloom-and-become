@@ -128,9 +128,21 @@ function love.load()
     quads.rock = love.graphics.newQuad(90, 18, ts, ts, tilesImg:getDimensions())
     quads.shrine = love.graphics.newQuad(198, 90, ts, ts, tilesImg:getDimensions())
     
-    bgm = love.audio.newSource("assets/audio/music/spring_ambient.ogg", "stream")
-    bgm:setLooping(true)
-    bgm:setVolume(0.3) -- Lower background volume
+    -- Load Audio (with safety checks)
+    local success, music = pcall(love.audio.newSource, "assets/audio/music/spring_ambient.ogg", "stream")
+    if success then
+        bgm = music
+        bgm:setLooping(true)
+        bgm:setVolume(0.3)
+    else
+        -- Second attempt with static source
+        local success2, music2 = pcall(love.audio.newSource, "assets/audio/sfx/win.ogg", "static")
+        if success2 then
+            bgm = music2
+            bgm:setLooping(true)
+            bgm:setVolume(0.1)
+        end
+    end
     
     sfx.jump = love.audio.newSource("assets/audio/sfx/jump.ogg", "static")
     sfx.collect = love.audio.newSource("assets/audio/sfx/collect.ogg", "static")
@@ -149,7 +161,7 @@ function love.load()
     end
     
     initGame()
-    bgm:play()
+    if bgm then bgm:play() end
 end
 
 function startShake(time, intensity)
@@ -212,8 +224,14 @@ function love.update(dt)
     end
     if player.stage == 3 and player.x < goal.x + goal.width and goal.x < player.x + player.width and
        player.y < goal.y + goal.height and goal.y < player.y + player.height then
-        if currentLevel == 1 then gameState = "transition" bgm:stop()
-        else gameState = "won" bgm:stop() sfx.win:play() end
+        if currentLevel == 1 then 
+            gameState = "transition" 
+            if bgm then bgm:stop() end
+        else 
+            gameState = "won" 
+            if bgm then bgm:stop() end
+            sfx.win:play() 
+        end
         for i=1, 100 do particles:spawn(goal.x + 20, goal.y + 35, {1, 0.5, 0.8}, 1) end
     end
     camX = player.x - 400
@@ -223,8 +241,8 @@ end
 function love.keypressed(key)
     if gameState == "title" then if key == "return" then gameState = "playing" elseif key == "c" then gameState = "credits" end return end
     if gameState == "credits" then if key == "escape" or key == "backspace" or key == "c" then gameState = "title" end return end
-    if gameState == "transition" then if key == "return" then initGame(2) gameState = "playing" bgm:play() end return end
-    if key == "r" then initGame(currentLevel) gameState = "playing" bgm:play() end
+    if gameState == "transition" then if key == "return" then initGame(2) gameState = "playing" if bgm then bgm:play() end end return end
+    if key == "r" then initGame(currentLevel) gameState = "playing" if bgm then bgm:play() end end
     if gameState == "playing" and evolutionPause <= 0 then
         if key == "space" or key == "w" or key == "up" then player:jump() end
         if key == "e" and player.stage == 3 then
