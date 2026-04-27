@@ -120,8 +120,12 @@ function love.load()
     
     tilesImg = love.graphics.newImage("assets/sprites/environment/tiles_packed.png")
     charactersImg = love.graphics.newImage("assets/sprites/player/characters_packed.png")
-    logoImg = love.graphics.newImage("assets/sprites/logo.png")
-    love.window.setIcon(love.image.newImageData("assets/sprites/logo.png"))
+    
+    -- Safety check for icon/logo
+    pcall(function()
+        logoImg = love.graphics.newImage("assets/sprites/logo.png")
+        love.window.setIcon(love.image.newImageData("assets/sprites/logo.png"))
+    end)
     
     local ts = 18
     quads.grass = love.graphics.newQuad(0, 0, ts, ts, tilesImg:getDimensions())
@@ -146,11 +150,17 @@ function love.load()
         end
     end
     
-    sfx.jump = love.audio.newSource("assets/audio/sfx/jump.ogg", "static")
-    sfx.collect = love.audio.newSource("assets/audio/sfx/collect.ogg", "static")
-    sfx.break_obj = love.audio.newSource("assets/audio/sfx/break.ogg", "static")
-    sfx.evolve = love.audio.newSource("assets/audio/sfx/evolve.ogg", "static")
-    sfx.win = love.audio.newSource("assets/audio/sfx/win.ogg", "static")
+    -- Load Sound Effects (with safety checks)
+    local function loadSFX(name, path)
+        local ok, src = pcall(love.audio.newSource, path, "static")
+        if ok then sfx[name] = src end
+    end
+    
+    loadSFX("jump", "assets/audio/sfx/jump.ogg")
+    loadSFX("collect", "assets/audio/sfx/collect.ogg")
+    loadSFX("break_obj", "assets/audio/sfx/break.ogg")
+    loadSFX("evolve", "assets/audio/sfx/evolve.ogg")
+    loadSFX("win", "assets/audio/sfx/win.ogg")
     
     for i = 1, 8 do
         table.insert(clouds, {x = math.random(0, 800), y = math.random(20, 200), speed = math.random(5, 15), w = math.random(60, 100)})
